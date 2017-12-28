@@ -1,3 +1,3 @@
 #!/bin/sh
 
-exec docker-compose up -e CONNECT lnd_btc
+exec docker-compose up lnd_btc

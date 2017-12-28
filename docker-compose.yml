@@ -87,7 +87,6 @@ services:
       image: bitcuddle
       volumes:
         - shared:/rpc
-      entrypoint: ["./nc", "-v", "-z", "lndrpc", "10009"]
       links:
         - "lnd_btc:lndrpc"
 
