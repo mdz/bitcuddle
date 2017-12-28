@@ -80,6 +80,7 @@ services:
     lnd_btc:
       extends: lnd
       container_name: lnd_btc
+      hostname: lndrpc
       links:
           - "btcd:blockchain"
 
