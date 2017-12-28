@@ -4,7 +4,8 @@ One Paragraph of project description goes here
 
 ## Getting Started
 
-docker-compose up lnd btcd
+export CONNECT=`BTCDHOST`
+./run-lnd
 
 ### Prerequisites
 
