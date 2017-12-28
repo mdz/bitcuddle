@@ -10,4 +10,6 @@ COPY . .
 
 RUN python -m grpc_tools.protoc --proto_path=vendor --python_out=. --grpc_python_out=. vendor/lnd/rpc.proto
 
+VOLUME /rpc
+
 CMD [ "python", "bitcuddle.py" ]
