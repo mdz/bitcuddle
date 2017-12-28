@@ -8,4 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN python -m grpc_tools.protoc --proto_path=vendor --python_out=. --grpc_python_out=. vendor/lnd/rpc.proto
+
 CMD [ "python", "bitcuddle.py" ]
