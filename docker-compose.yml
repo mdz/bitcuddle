@@ -6,8 +6,6 @@ services:
     # container start within starting script.
     btc:
       image: btcd
-      build:
-        context: btcd/
       volumes:
             - shared:/rpc
             - bitcoin:/data
@@ -37,8 +35,6 @@ services:
     # container start within starting script.
     ltc:
       image: ltcd
-      build:
-        context: ltcd/
       volumes:
             - shared:/rpc
             - litecoin:/data
@@ -64,9 +60,6 @@ services:
 
     lnd:
         image: lnd
-        build:
-          context: ../
-          dockerfile: docker/lnd/Dockerfile
         environment:
           - RPCUSER
           - RPCPASS
