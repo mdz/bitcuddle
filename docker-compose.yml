@@ -86,6 +86,9 @@ services:
       image: bitcuddle
       volumes:
         - shared:/rpc
+      entrypoint: ["./nc", "-v", "-z", "lndrpc", "10009"]
+      links:
+        - "lnd:lndrpc"
 
 volumes:
   # shared volume is need to store the btcd rpc certificates and us it within
