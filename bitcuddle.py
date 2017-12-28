@@ -7,8 +7,8 @@ import os
 
 print("Hello, world!")
 
-cert = open(os.path.expanduser('/rpc/rpc.cert')).read()
-print(cert)
+cert = open(os.path.expanduser('/rpc/lnd.cert')).read()
+#print(cert)
 creds = grpc.ssl_channel_credentials(bytes(cert, 'ascii'))
 
 channel = grpc.secure_channel('lndrpc:10009', creds)
