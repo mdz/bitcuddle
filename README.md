@@ -9,7 +9,7 @@ One Paragraph of project description goes here
 git clone git@github.com:devrandom/lnd.git
 pushd lnd
 git checkout networking
-cd /docker/lnd
+cd docker/lnd
 docker-compose build)
 popd
 
