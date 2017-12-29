@@ -35,3 +35,9 @@ else:
     print("Peering with {}@{}".format(lnd_key,lnd_host))
     response = stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
     print(response)
+
+openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=lnd_key,
+        local_funding_amount=100000,
+        push_sat = 50000)
+response = ln.OpenChannelSync(openChannelRequest)
+print(response)
