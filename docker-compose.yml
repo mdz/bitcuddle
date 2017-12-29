@@ -23,43 +23,7 @@ services:
           - MINING_ADDRESS
         entrypoint: ["./start-btcd.sh"]
 
-    btcctl:
-        extends: btc
-        container_name: btcctl
-        links:
-            - "btcd:rpcserver"
-        entrypoint: ["./start-btcctl.sh"]
-
-
-    # ltc is an image of litecoin node which used as base image for ltcd and
-    # ltcctl. The environment variables default values determined on stage of
-    # container start within starting script.
-    ltc:
-      image: ltcd
-      volumes:
-            - shared:/rpc
-            - litecoin:/data
-      environment:
-        - RPCUSER
-        - RPCPASS
-        - NETWORK
-
-    ltcd:
-        extends: ltc
-        container_name: ltcd
-        environment:
-          - DEBUG
-          - MINING_ADDRESS
-        entrypoint: ["./start-ltcd.sh"]
-
-    ltcctl:
-        extends: ltc
-        container_name: ltcctl
-        links:
-            - "ltcd:rpcserver"
-        entrypoint: ["./start-ltcctl.sh"]
-
-    lnd:
+    lnd_btc:
         image: lnd
         environment:
           - RPCUSER
@@ -68,20 +32,11 @@ services:
           - CHAIN
           - DEBUG
         volumes:
-            - shared:/rpc
+          - shared:/rpc
         entrypoint: ["./start-lnd.sh"]
-
-    lnd_ltc:
-      extends: lnd
-      container_name: lnd_ltc
-      links:
-          - "ltcd:blockchain"
-
-    lnd_btc:
-      extends: lnd
-      container_name: lnd_btc
-      hostname: lndrpc
-      links:
+        container_name: lnd_btc
+        hostname: lndrpc
+        links:
           - "btcd:blockchain"
 
     bitcuddle:
