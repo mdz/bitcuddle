@@ -4,16 +4,24 @@ One Paragraph of project description goes here
 
 ## Getting Started
 
-export CONNECT=`BTCDHOST`
-./run-lnd
+```bash
+# create the lnd_btc and btcd docker images
+git clone git@github.com:devrandom/lnd.git
+pushd lnd
+git checkout networking
+cd /docker/lnd
+docker-compose build)
+popd
+
+# start lnd and bitcuddle
+docker-compose up -d lnd_btc bitcuddle
+```
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
-
-```
-Give examples
-```
+* docker
+* docker-compose
+* ssh stanza for compute instance (to run fund script)
 
 ### Installing
 
