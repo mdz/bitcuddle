@@ -28,6 +28,7 @@ peered = False
 for peer in response.peers:
     if peer.pub_key == lnd_key:
         peered = True
+        break
 
 if peered:
     print("Already peered with {}".format(lnd_key))
@@ -36,8 +37,21 @@ else:
     response = stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
     print(response)
 
-openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=lnd_key,
-        local_funding_amount=100000,
-        push_sat = 50000)
-response = ln.OpenChannelSync(openChannelRequest)
-print(response)
+response = stub.ListChannels(ln.ListChannelsRequest())
+print(repr(response))
+
+opened = False
+for channel in response.channels:
+    if channel.remote_pubkey == lnd_key:
+        opened = True
+        break
+
+if opened:
+    print("Already have a channel to {}".format(lnd_key))
+else:
+    print("Opening channel to {}".format(lnd_key))
+    openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=lnd_key,
+            local_funding_amount=100000,
+            push_sat = 50000)
+    response = stub.OpenChannelSync(openChannelRequest)
+    print(response)
