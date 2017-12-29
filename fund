@@ -3,4 +3,4 @@
 json=$(docker-compose exec lnd_btc lncli --no-macaroons newaddress p2wkh)
 address=$(echo "$json" | jq -r .address)
 echo "address: $address"
-ssh compute faucet "$address" 1000000
+ssh compute ./faucet "$address" 1000000
