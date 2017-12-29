@@ -43,6 +43,7 @@ services:
       image: bitcuddle
       volumes:
         - shared:/rpc
+        - $PWD:/mnt
       links:
         - "lnd_btc:lndrpc"
       environment:

@@ -1,3 +1,4 @@
 #!/bin/sh
 
-exec docker run -e PYTHONPATH=. -v $PWD:/mnt bitcuddle python3.6 /mnt/bitcuddle.py
+# Run directly from the source tree
+docker-compose run -e PYTHONPATH=. bitcuddle python3.6 /mnt/bitcuddle.py
