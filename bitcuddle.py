@@ -7,31 +7,49 @@ import os
 import codecs
 
 class BitCuddle:
-    def go(self):
-        print("Hello, bitcuddles!")
+    def __init__(self):
+        self.lnds = dict()
+        self.pubkeys = dict()
 
-        cert = open(os.path.expanduser('/rpc/lnd.cert')).read()
+    def go(self):
+        pubkey = os.environ['LND_PEER_PUBKEY']
+        host = os.environ['LND_PEER_HOST']
+
+        bob = self.connect_rpc('lnd_bob')
+        #self.connect_peer(bob, pubkey=pubkey, host=host)
+        #self.create_channel(bob, pubkey=pubkey)
+
+        alice = self.connect_rpc('lnd_alice')
+        #self.connect_peer(alice, pubkey=os.environ['LND_PEER_PUBKEY'], host=os.environ['LND_PEER_HOST'])
+        #self.create_channel(alice, pubkey=pubkey)
+
+        self.connect_peer(bob, pubkey=self.pubkeys[alice], host='lnd_alice')
+        self.create_channel(bob, pubkey=self.pubkeys[alice])
+        # wait for block
+
+        self.send_payment(bob, alice, value=1, memo="Test")
+
+    def connect_rpc(self, name):
+        print(f"Hello, bitcuddles {name}!")
+
+        cert = open(os.path.expanduser(f'/rpc/lnd-{name}.cert')).read()
         #print(cert)
         creds = grpc.ssl_channel_credentials(bytes(cert, 'ascii'))
 
-        channel = grpc.secure_channel('lndrpc:10009', creds)
-        self.stub = lnrpc.LightningStub(channel)
+        channel = grpc.secure_channel(f'{name}:10009', creds)
+        lnd = lnrpc.LightningStub(channel)
 
-        response = self.stub.GetInfo(ln.GetInfoRequest())
+        response = lnd.GetInfo(ln.GetInfoRequest())
         print(response)
 
-        pubkey = os.environ['LND_PEER_PUBKEY']
-        host = os.environ['LND_PEER_HOST']
-        self.peer_with(pubkey=pubkey, host=host)
+        self.pubkeys[lnd] = response.identity_pubkey
 
-        self.create_channel(pubkey)
+        return self.lnds.setdefault(name, lnd)
 
-        self.send_payment(pubkey, 1, "Test")
-
-    def peer_with(self, pubkey, host):
+    def connect_peer(self, stub, pubkey, host):
         lnd_address = ln.LightningAddress(pubkey=pubkey, host=host)
 
-        response = self.stub.ListPeers(ln.ListPeersRequest())
+        response = stub.ListPeers(ln.ListPeersRequest())
         print(repr(response))
 
         peered = False
@@ -44,11 +62,11 @@ class BitCuddle:
             print("Already peered with {}".format(pubkey))
         else:
             print("Peering with {}@{}".format(pubkey,host))
-            response = self.stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
+            response = stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
             print(response)
 
-    def create_channel(self, pubkey):
-        response = self.stub.ListChannels(ln.ListChannelsRequest())
+    def create_channel(self, stub, pubkey):
+        response = stub.ListChannels(ln.ListChannelsRequest())
         print(repr(response))
 
         opened = False
@@ -64,23 +82,26 @@ class BitCuddle:
             openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=pubkey,
                     local_funding_amount=100000,
                     push_sat = 50000)
-            response = self.stub.OpenChannelSync(openChannelRequest)
+            response = stub.OpenChannelSync(openChannelRequest)
             print(response)
 
-    def send_payment(self, dest, value, memo):
+    def send_payment(self, src, dest, value, memo):
         invoice = ln.Invoice(value=value, memo=memo)
+        print(invoice)
 
-        response = self.stub.AddInvoice(invoice)
+        response = dest.AddInvoice(invoice)
         print(response)
 
         payment_request = response.payment_request
 
-        payment = ln.SendRequest(dest_string=dest,
+        payment = ln.SendRequest(dest_string=self.pubkeys[dest],
                                  amt=invoice.value,
                                  payment_request=payment_request,
                                  payment_hash=response.r_hash)
-        response = self.stub.SendPaymentSync(payment)
-        print(repr(response))
+        print(payment)
+
+        response = src.SendPaymentSync(payment)
+        print(response)
 
 bitcuddle = BitCuddle()
 bitcuddle.go()

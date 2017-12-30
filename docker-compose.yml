@@ -23,7 +23,7 @@ services:
           - MINING_ADDRESS
         entrypoint: ["./start-btcd.sh"]
 
-    lnd_btc:
+    lnd:
         image: lnd
         environment:
           - RPCUSER
@@ -33,11 +33,22 @@ services:
           - DEBUG
         volumes:
           - shared:/rpc
-        entrypoint: ["./start-lnd.sh"]
-        container_name: lnd_btc
-        hostname: lndrpc
-        links:
-          - "btcd:blockchain"
+
+    lnd_alice:
+      extends: lnd
+      container_name: lnd_alice
+      hostname: lnd_alice
+      links:
+        - "btcd:blockchain"
+      entrypoint: ["./start-lnd.sh"]
+
+    lnd_bob:
+      extends: lnd
+      container_name: lnd_bob
+      hostname: lnd_bob
+      links:
+        - "btcd:blockchain"
+      entrypoint: ["./start-lnd.sh"]
 
     bitcuddle:
       image: bitcuddle
@@ -45,7 +56,8 @@ services:
         - shared:/rpc
         - $PWD:/mnt
       links:
-        - "lnd_btc:lndrpc"
+        - "lnd_alice:lnd_alice"
+        - "lnd_bob:lnd_bob"
       environment:
         - LND_PEER_HOST
         - LND_PEER_PUBKEY
