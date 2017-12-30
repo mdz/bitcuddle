@@ -2,6 +2,13 @@
 
 One Paragraph of project description goes here
 
+## To do
+* Tests
+* Settlement
+* Decide on architecture: are Alice and Bob co-located or not?
+* Data model and flow for contracts
+* API
+
 ## Getting Started
 
 ```bash
@@ -23,29 +30,6 @@ docker-compose up -d lnd_btc bitcuddle
 * docker-compose
 * ssh stanza for compute instance (to run fund script)
 
-### Installing
-
-A step by step series of examples that tell you have to get a development env running
-
-Say what the step will be
-
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
-
 ## Running the tests
 
 Explain how to run the automated tests for this system
-
-## Built With
-
-* stuff
-
