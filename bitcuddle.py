@@ -31,7 +31,9 @@ class BitCuddle:
 
         # wait for block
 
-        self.send_payment(bob, alice, value=1, memo="Test")
+        while True:
+            self.send_payment(bob, alice, value=1, memo="Test from bob to alice")
+            self.send_payment(alice, bob, value=1, memo="Test from alice to bob")
 
     def connect_rpc(self, name):
         print(f"Hello, bitcuddles {name}!")
