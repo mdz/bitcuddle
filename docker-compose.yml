@@ -34,6 +34,14 @@ services:
         volumes:
           - shared:/rpc
 
+    lnd_hub:
+      extends: lnd
+      container_name: lnd_hub
+      hostname: lnd_hub
+      links:
+        - "btcd:blockchain"
+      entrypoint: ["./start-lnd.sh"]
+
     lnd_alice:
       extends: lnd
       container_name: lnd_alice

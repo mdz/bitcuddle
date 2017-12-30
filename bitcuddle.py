@@ -4,7 +4,6 @@ import lnd.rpc_pb2 as ln
 import lnd.rpc_pb2_grpc as lnrpc
 import grpc
 import os
-import codecs
 
 class BitCuddle:
     def __init__(self):
@@ -12,19 +11,24 @@ class BitCuddle:
         self.pubkeys = dict()
 
     def go(self):
-        pubkey = os.environ['LND_PEER_PUBKEY']
-        host = os.environ['LND_PEER_HOST']
+        #pubkey = os.environ['LND_PEER_PUBKEY']
+        #host = os.environ['LND_PEER_HOST']
+
+        hub = self.connect_rpc('lnd_hub')
+        hub_pubkey = self.pubkeys[hub]
+        hub_host = 'lnd_hub'
 
         bob = self.connect_rpc('lnd_bob')
-        #self.connect_peer(bob, pubkey=pubkey, host=host)
-        #self.create_channel(bob, pubkey=pubkey)
+        self.connect_peer(bob, pubkey=hub_pubkey, host=hub_host)
+        self.create_channel(bob, pubkey=hub_pubkey)
 
         alice = self.connect_rpc('lnd_alice')
-        #self.connect_peer(alice, pubkey=os.environ['LND_PEER_PUBKEY'], host=os.environ['LND_PEER_HOST'])
-        #self.create_channel(alice, pubkey=pubkey)
+        self.connect_peer(alice, pubkey=hub_pubkey, host=hub_host)
+        self.create_channel(alice, pubkey=hub_pubkey)
 
         self.connect_peer(bob, pubkey=self.pubkeys[alice], host='lnd_alice')
         self.create_channel(bob, pubkey=self.pubkeys[alice])
+
         # wait for block
 
         self.send_payment(bob, alice, value=1, memo="Test")
