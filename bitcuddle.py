@@ -6,107 +6,108 @@ import grpc
 import os
 
 class BitCuddle:
-    def __init__(self):
-        self.lnds = dict()
-        self.pubkeys = dict()
-
     def go(self):
         #pubkey = os.environ['LND_PEER_PUBKEY']
         #host = os.environ['LND_PEER_HOST']
 
-        hub = self.connect_rpc('lnd_hub')
-        hub_pubkey = self.pubkeys[hub]
-        hub_host = 'lnd_hub'
+        hub = LightningNode('lnd_hub')
+        hub.connect()
 
-        bob = self.connect_rpc('lnd_bob')
-        self.connect_peer(bob, pubkey=hub_pubkey, host=hub_host)
-        self.create_channel(bob, pubkey=hub_pubkey)
+        bob = LightningNode('lnd_bob')
+        bob.connect()
+        bob.peer(hub)
+        bob.create_channel(hub)
 
-        alice = self.connect_rpc('lnd_alice')
-        self.connect_peer(alice, pubkey=hub_pubkey, host=hub_host)
-        self.create_channel(alice, pubkey=hub_pubkey)
+        alice = LightningNode('lnd_alice')
+        alice.connect()
+        alice.peer(hub)
+        alice.create_channel(hub)
 
-        self.connect_peer(bob, pubkey=self.pubkeys[alice], host='lnd_alice')
-        self.create_channel(bob, pubkey=self.pubkeys[alice])
+        # XXX - alice and bob should be able to find each other through the hub...
+        alice.peer(bob)
+        alice.create_channel(bob)
 
         # wait for block
 
         while True:
-            self.send_payment(bob, alice, value=1, memo="Test from bob to alice")
-            self.send_payment(alice, bob, value=1, memo="Test from alice to bob")
+            bob.send_payment(alice, value=1, memo="Test from bob to alice")
+            alice.send_payment(bob, value=1, memo="Test from alice to bob")
 
-    def connect_rpc(self, name):
-        print(f"Hello, bitcuddles {name}!")
+class LightningNode:
+    def __init__(self, host):
+        self.host = host
+        self.stub = None
 
-        cert = open(os.path.expanduser(f'/rpc/lnd-{name}.cert')).read()
+    def connect(self):
+        print(f"Connecting to {self.host}")
+
+        cert = open(os.path.expanduser(f'/rpc/lnd-{self.host}.cert')).read()
         #print(cert)
         creds = grpc.ssl_channel_credentials(bytes(cert, 'ascii'))
 
-        channel = grpc.secure_channel(f'{name}:10009', creds)
-        lnd = lnrpc.LightningStub(channel)
+        channel = grpc.secure_channel(f'{self.host}:10009', creds)
+        self.stub = lnrpc.LightningStub(channel)
 
-        response = lnd.GetInfo(ln.GetInfoRequest())
+        response = self.stub.GetInfo(ln.GetInfoRequest())
         print(response)
 
-        self.pubkeys[lnd] = response.identity_pubkey
+        self.pubkey = response.identity_pubkey
 
-        return self.lnds.setdefault(name, lnd)
+    def peer(self, other):
+        lnd_address = ln.LightningAddress(pubkey=other.pubkey, host=other.host)
 
-    def connect_peer(self, stub, pubkey, host):
-        lnd_address = ln.LightningAddress(pubkey=pubkey, host=host)
-
-        response = stub.ListPeers(ln.ListPeersRequest())
+        response = self.stub.ListPeers(ln.ListPeersRequest())
         print(repr(response))
 
         peered = False
         for peer in response.peers:
-            if peer.pub_key == pubkey:
+            if peer.pub_key == other.pubkey:
                 peered = True
                 break
 
         if peered:
-            print("Already peered with {}".format(pubkey))
+            print(f"Already peered with {other.pubkey}")
         else:
-            print("Peering with {}@{}".format(pubkey,host))
-            response = stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
+            print(f"Peering with {lnd_address}")
+            response = self.stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
             print(response)
 
-    def create_channel(self, stub, pubkey):
-        response = stub.ListChannels(ln.ListChannelsRequest())
+    def create_channel(self, other):
+        response = self.stub.ListChannels(ln.ListChannelsRequest())
         print(repr(response))
 
         opened = False
         for channel in response.channels:
-            if channel.remote_pubkey == pubkey:
+            if channel.remote_pubkey == other.pubkey:
                 opened = True
                 break
 
         if opened:
-            print("Already have a channel to {}".format(pubkey))
+            print(f"Already have a channel to {other.pubkey}")
         else:
-            print("Opening channel to {}".format(pubkey))
-            openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=pubkey,
+            print(f"Opening channel to {other.pubkey}")
+            openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=other.pubkey,
                     local_funding_amount=100000,
                     push_sat = 50000)
-            response = stub.OpenChannelSync(openChannelRequest)
+            response = self.stub.OpenChannelSync(openChannelRequest)
             print(response)
 
-    def send_payment(self, src, dest, value, memo):
+    def send_payment(self, dest, value, memo):
         invoice = ln.Invoice(value=value, memo=memo)
         print(invoice)
 
-        response = dest.AddInvoice(invoice)
+        response = dest.stub.AddInvoice(invoice)
         print(response)
 
         payment_request = response.payment_request
 
-        payment = ln.SendRequest(dest_string=self.pubkeys[dest],
+        payment = ln.SendRequest(dest_string=dest.pubkey,
                                  amt=invoice.value,
                                  payment_request=payment_request,
                                  payment_hash=response.r_hash)
         print(payment)
 
-        response = src.SendPaymentSync(payment)
+        response = self.stub.SendPaymentSync(payment)
         print(response)
 
 bitcuddle = BitCuddle()
