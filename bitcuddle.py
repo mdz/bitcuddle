@@ -14,6 +14,8 @@ import time
 
 class BitCuddle:
     def go(self):
+        print("Hello, bitcuddlers!")
+
         # Initialize the mining wallet
         mining_wallet = BTCWalletRPC('btcwallet')
         mining_wallet.connect()
@@ -40,12 +42,10 @@ class BitCuddle:
 
         bob = LightningRPC('lnd_bob')
         bob.connect()
-        bob.peer(hub)
-        hub.peer(bob)
-
         alice = LightningRPC('lnd_alice')
         alice.connect()
-        alice.peer(hub)
+
+        hub.peer(bob)
         hub.peer(alice)
 
         # XXX - shouldn't alice and bob find each other through the hub?
