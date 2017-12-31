@@ -78,9 +78,6 @@ services:
       links:
         - "lnd_alice:lnd_alice"
         - "lnd_bob:lnd_bob"
-      environment:
-        - LND_PEER_HOST
-        - LND_PEER_PUBKEY
 
 volumes:
   # shared volume is need to store the btcd rpc certificates and us it within
