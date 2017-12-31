@@ -23,7 +23,7 @@ class BitCuddle:
             with open(mining_address_file) as f:
                 mining_address = f.read()
         else:
-            mining_address = wallet.getnewaddress()
+            mining_address = mining_wallet.getnewaddress()
             with open(mining_address_file, 'w') as f:
                 f.write(mining_address)
             print(f"Created address {mining_address} for mining")
