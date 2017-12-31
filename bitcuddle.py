@@ -12,34 +12,49 @@ import os
 
 class BitCuddle:
     def go(self):
+        # Initialize the mining wallet
         wallet = BTCWalletNode('btcwallet')
         wallet.connect()
         print('Wallet balance:', wallet.getbalance())
 
         mining_address_file = '/rpc/mining_address'
         if not os.path.exists(mining_address_file):
+            with open(mining_address_file) as f:
+                mining_address = f.read()
+        else:
             mining_address = wallet.getnewaddress()
             with open(mining_address_file, 'w') as f:
                 f.write(mining_address)
             print(f"Created address {mining_address} for mining")
             
+        print(f"Mining address: {mining_address}")
+
+        # Bring up the lightning network
         hub = LightningNode('lnd_hub')
         hub.connect()
 
         bob = LightningNode('lnd_bob')
         bob.connect()
         bob.peer(hub)
-        bob.create_channel(hub)
 
         alice = LightningNode('lnd_alice')
         alice.connect()
         alice.peer(hub)
-        alice.create_channel(hub)
 
         # XXX - alice and bob should be able to find each other through the
-        # hub, but this doesn't seem to work, so create a direct channel
+        # hub, but this doesn't seem to work, so create a direct peering
         # between them
         alice.peer(bob)
+
+        # Ensure that there are funds available to create a channel
+        bob_balance = bob.wallet_balance()
+        print(f"Bob's balance is {bob_balance}")
+        if bob_balance["total_balance"] == 0:
+            print("Funding bob from the mining wallet")
+            bob_address = bob.new_address()
+            wallet.unlock('password', 5)
+            wallet.sendtoaddress(bob_address, 1)
+
         alice.create_channel(bob)
 
         # wait for block
@@ -124,6 +139,31 @@ class LightningNode:
         response = self.stub.SendPaymentSync(payment)
         print(response)
 
+    def new_address(self, address_type='np2wkh'):
+        type_map = {
+            "p2wkh": ln.NewAddressRequest.WITNESS_PUBKEY_HASH,
+            "np2wkh": ln.NewAddressRequest.NESTED_PUBKEY_HASH,
+            "p2pkh": ln.NewAddressRequest.PUBKEY_HASH
+        }
+
+        request = ln.NewAddressRequest(type=type_map[address_type])
+
+        response = self.stub.NewAddress(request)
+
+        print(f"new address: '{str(response.address)}'")
+
+        return response.address
+        
+    def wallet_balance(self):
+        response = self.stub.WalletBalance(ln.WalletBalanceRequest())
+        print(response)
+
+        return {
+            "total_balance": response.total_balance,
+            "confirmed_balance": response.confirmed_balance,
+            "unconfirmed_balance": response.unconfirmed_balance
+        }
+
 class BTCWalletNode:
     def __init__(self, host):
         self.host = host
@@ -134,6 +174,7 @@ class BTCWalletNode:
 
         print(self._request("getinfo"))
 
+    # TODO: decorator
     def getbalance(self):
         return self._request("getbalance")
 
@@ -142,6 +183,12 @@ class BTCWalletNode:
 
     def importprivkey(self, privkey):
         return self._request("importprivkey", [privkey])
+
+    def sendtoaddress(self, dest, amount):
+        return self._request("sendtoaddress", [dest, amount])
+
+    def unlock(self, passphrase, timeout):
+        return self._request("walletpassphrase", [passphrase, timeout])
 
     def _request(self, method, params=[]):
         headers = {'content-type': 'application/json'}
@@ -160,13 +207,17 @@ class BTCWalletNode:
         json = resp.json()
         print(json)
         if json['error'] != None:
-            error = 'btcwallet json-rpc error {}: {}'.format(json['error']['code'], json['error']['message'])
-            raise RuntimeError(error)
+            raise self.jsonrpc_error(json['error'])
 
         return json['result']
 
+    class jsonrpc_error(Exception):
+        def __init__(self, error):
+            self.code = error['code']
+            self.message = error['message']
 
-
+        def __repr__(self):
+            return { "code": self.code, "message": self.message }
 
 bitcuddle = BitCuddle()
 bitcuddle.go()
