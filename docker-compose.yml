@@ -23,6 +23,18 @@ services:
           - MINING_ADDRESS
         entrypoint: ["./start-btcd.sh"]
 
+    btcwallet:
+        image: btcwallet
+        container_name: btcwallet
+        volumes:
+          - shared:/rpc
+          - btcwallet:/data
+        links:
+          - "btcd:btcd"
+        environment:
+          - RPC_CONNECT=btcd
+        entrypoint: ["./start-btcwallet.sh"]
+
     lnd:
         image: lnd
         environment:
@@ -81,7 +93,7 @@ volumes:
   bitcoin:
     driver: local
 
-  # litecoin volume is needed for maintaining blockchain persistance
-  # during ltcd container recreation.
-  litecoin:
+  # A volume to store the btcwallet wallet
+  btcwallet:
     driver: local
+  

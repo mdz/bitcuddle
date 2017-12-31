@@ -2,6 +2,10 @@
 
 import lnd.rpc_pb2 as ln
 import lnd.rpc_pb2_grpc as lnrpc
+
+import btcwallet.api_pb2 as btcw
+import btcwallet.api_pb2_grpc as btcwrpc
+
 import grpc
 import os
 
@@ -29,9 +33,8 @@ class BitCuddle:
 
         # wait for block
 
-        while True:
-            bob.send_payment(alice, value=1, memo="Test from bob to alice")
-            alice.send_payment(bob, value=1, memo="Test from alice to bob")
+        bob.send_payment(alice, value=1, memo="Test from bob to alice")
+        alice.send_payment(bob, value=1, memo="Test from alice to bob")
 
 class LightningNode:
     def __init__(self, host):
@@ -39,7 +42,7 @@ class LightningNode:
         self.stub = None
 
     def connect(self):
-        print(f"Connecting to {self.host}")
+        print(f"Connecting to lnd on {self.host}")
 
         cert = open(os.path.expanduser(f'/rpc/lnd-{self.host}.cert')).read()
         #print(cert)
@@ -109,6 +112,28 @@ class LightningNode:
 
         response = self.stub.SendPaymentSync(payment)
         print(response)
+
+class BTCWalletNode:
+    def __init__(self, host):
+        self.host = host
+        self.stub = None
+
+    def connect(self):
+        print(f"Connecting to btcwallet on {self.host}")
+
+        cert = open(os.path.expanduser(f'/rpc/rpc.cert')).read()
+        #print(cert)
+        creds = grpc.ssl_channel_credentials(bytes(cert, 'ascii'))
+
+        channel = grpc.secure_channel(f'{self.host}:18554', creds)
+        self.stub = btcwrpc.WalletServiceStub(channel)
+
+        response = self.stub.Ping(btcw.PingRequest())
+        print(response)
+
+#wallet = BTCWalletNode('btcwallet')
+#wallet.connect()
+
 
 bitcuddle = BitCuddle()
 bitcuddle.go()
