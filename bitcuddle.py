@@ -23,9 +23,6 @@ class BitCuddle:
                 f.write(mining_address)
             print(f"Created address {mining_address} for mining")
             
-
-        return
-
         hub = LightningNode('lnd_hub')
         hub.connect()
 
