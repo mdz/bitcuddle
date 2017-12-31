@@ -6,7 +6,6 @@ import lnd.rpc_pb2_grpc as lnrpc
 #import btcwallet.api_pb2 as btcw
 #import btcwallet.api_pb2_grpc as btcwrpc
 import requests
-import json
 
 import grpc
 import os
@@ -15,6 +14,17 @@ class BitCuddle:
     def go(self):
         wallet = BTCWalletNode('btcwallet')
         wallet.connect()
+        print('Wallet balance:', wallet.getbalance())
+
+        mining_address_file = '/rpc/mining_address'
+        if not os.path.exists(mining_address_file):
+            mining_address = wallet.getnewaddress()
+            with open(mining_address_file, 'w') as f:
+                f.write(mining_address)
+            print(f"Created address {mining_address} for mining")
+            
+
+        return
 
         hub = LightningNode('lnd_hub')
         hub.connect()
@@ -29,7 +39,9 @@ class BitCuddle:
         alice.peer(hub)
         alice.create_channel(hub)
 
-        # XXX - alice and bob should be able to find each other through the hub...
+        # XXX - alice and bob should be able to find each other through the
+        # hub, but this doesn't seem to work, so create a direct channel
+        # between them
         alice.peer(bob)
         alice.create_channel(bob)
 
@@ -125,6 +137,15 @@ class BTCWalletNode:
 
         print(self._request("getinfo"))
 
+    def getbalance(self):
+        return self._request("getbalance")
+
+    def getnewaddress(self):
+        return self._request("getnewaddress")
+
+    def importprivkey(self, privkey):
+        return self._request("importprivkey", [privkey])
+
     def _request(self, method, params=[]):
         headers = {'content-type': 'application/json'}
 
@@ -135,10 +156,12 @@ class BTCWalletNode:
             "jsonrpc": "2.0",
             "id": 0
         }
+        #print(request)
         resp = requests.post(url, json=request, headers=headers, verify='/rpc/rpc.cert')
         resp.raise_for_status()
 
         json = resp.json()
+        print(json)
         if json['error'] != None:
             error = 'btcwallet json-rpc error {}: {}'.format(json['error']['code'], json['error']['message'])
             raise RuntimeError(error)
