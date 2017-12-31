@@ -41,15 +41,12 @@ class BitCuddle:
         bob = LightningRPC('lnd_bob')
         bob.connect()
         bob.peer(hub)
+        hub.peer(bob)
 
         alice = LightningRPC('lnd_alice')
         alice.connect()
         alice.peer(hub)
-
-        # XXX - alice and bob should be able to find each other through the
-        # hub, but this doesn't seem to work, so create a direct peering
-        # between them
-        alice.peer(bob)
+        hub.peer(alice)
 
         mining_wallet_balance = mining_wallet.getbalance()
         mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
