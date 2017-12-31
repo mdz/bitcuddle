@@ -5,7 +5,8 @@ import lnd.rpc_pb2_grpc as lnrpc
 
 #import btcwallet.api_pb2 as btcw
 #import btcwallet.api_pb2_grpc as btcwrpc
-import requests
+#import requests
+import jsonrpc_requests
 
 import grpc
 import os
@@ -52,7 +53,7 @@ class BitCuddle:
         if bob_balance["total_balance"] == 0:
             print("Funding bob from the mining wallet")
             bob_address = bob.new_address()
-            wallet.unlock('password', 5)
+            wallet.walletpassphrase('password', 5)
             wallet.sendtoaddress(bob_address, 1)
 
         alice.create_channel(bob)
@@ -165,59 +166,34 @@ class LightningNode:
         }
 
 class BTCWalletNode:
-    def __init__(self, host):
+    def __init__(self, host, port=18554):
         self.host = host
-        self.stub = None
+        self.port = port
+        self.rpc = None
 
     def connect(self):
-        print(f"Connecting to btcwallet on {self.host}")
+        url = f'https://devuser:devpass@{self.host}:{self.port}/'
+        print(f"Connecting to btcwallet on {url}")
 
-        print(self._request("getinfo"))
+        self.rpc = jsonrpc_requests.Server(url, verify='/rpc/rpc.cert')
 
-    # TODO: decorator
+        print("Connected to btcwallet:",self.rpc.getinfo())
+
+    # TODO: decorator?
     def getbalance(self):
-        return self._request("getbalance")
+        return self.rpc.getbalance()
 
     def getnewaddress(self):
-        return self._request("getnewaddress")
+        return self.rpc.getnewaddress()
 
     def importprivkey(self, privkey):
-        return self._request("importprivkey", [privkey])
+        return self.rpc.importprivkey(privkey)
 
     def sendtoaddress(self, dest, amount):
-        return self._request("sendtoaddress", [dest, amount])
+        return self.rpc.sendtoaddress(dest, amount)
 
-    def unlock(self, passphrase, timeout):
-        return self._request("walletpassphrase", [passphrase, timeout])
-
-    def _request(self, method, params=[]):
-        headers = {'content-type': 'application/json'}
-
-        url = f'https://devuser:devpass@{self.host}:18554/'
-        request = {
-            "method": method,
-            "params": params,
-            "jsonrpc": "2.0",
-            "id": 0
-        }
-        #print(request)
-        resp = requests.post(url, json=request, headers=headers, verify='/rpc/rpc.cert')
-        resp.raise_for_status()
-
-        json = resp.json()
-        print(json)
-        if json['error'] != None:
-            raise self.jsonrpc_error(json['error'])
-
-        return json['result']
-
-    class jsonrpc_error(Exception):
-        def __init__(self, error):
-            self.code = error['code']
-            self.message = error['message']
-
-        def __repr__(self):
-            return { "code": self.code, "message": self.message }
+    def walletpassphrase(self, passphrase, timeout):
+        return self.rpc.walletpassphrase(passphrase, timeout)
 
 bitcuddle = BitCuddle()
 bitcuddle.go()
