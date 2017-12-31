@@ -30,6 +30,10 @@ class BitCuddle:
             
         print(f"Mining address: {mining_address}")
 
+        # Connect to btcd
+        btcd = BTCDNode('btcd')
+        btcd.connect()
+
         # Bring up the lightning network
         hub = LightningNode('lnd_hub')
         hub.connect()
@@ -187,6 +191,13 @@ class JSONRPCWrapper:
 class BTCWalletNode(JSONRPCWrapper):
     def __init__(self, host, port=18554):
         super().__init__('btcwallet', host, port)
+
+class BTCDNode(JSONRPCWrapper):
+    def __init__(self, host, port=18556):
+        super().__init__('btcd', host, port)
+
+    def generate(self, blocks):
+        self.rpc.generate(blocks)
 
 bitcuddle = BitCuddle()
 bitcuddle.go()
