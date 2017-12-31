@@ -12,16 +12,12 @@ One Paragraph of project description goes here
 ## Getting Started
 
 ```bash
-# create the lnd_btc and btcd docker images
-git clone git@github.com:devrandom/lnd.git
-pushd lnd
-git checkout networking
-cd docker/lnd
-docker-compose build)
-popd
+# build the lnd and btcd docker images
+git clone -b networking git@github.com:devrandom/lnd.git
+(cd lnd/docker/lnd && docker-compose build)
 
-# start lnd and bitcuddle
-docker-compose up -d lnd_btc bitcuddle
+# start everything up
+docker-compose up -d
 ```
 
 ### Prerequisites
