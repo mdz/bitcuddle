@@ -84,7 +84,9 @@ class BitCuddle:
                 btcd.generate_and_wait(1)
 
         bob.create_channel(alice)
-        btcd.generate_and_wait(1)
+        while not bob.has_channel(alice):
+            print("Waiting for channel")
+            btcd.generate_and_wait(1)
 
         bob.send_payment(alice, value=1, memo="Test from bob to alice")
         alice.send_payment(bob, value=1, memo="Test from alice to bob")
@@ -136,13 +138,7 @@ class LightningRPC:
             print("Confirmed")
 
     def create_channel(self, other):
-        opened = False
-        for channel in self.list_channels():
-            if channel.remote_pubkey == other.pubkey:
-                opened = True
-                break
-
-        if opened:
+        if self.has_channel(other):
             print(f"{self.host} already has a channel to {other.host}")
         else:
             print(f"{self.host} opening channel to {other.host}")
@@ -152,23 +148,18 @@ class LightningRPC:
             response = self.stub.OpenChannelSync(openChannelRequest)
             print(response)
 
-        self._wait_for_channel(other.pubkey)
-
-    def _wait_for_channel(self, pubkey):
-        print(f"{self.host} waiting for channel to {pubkey} to become active")
+    def has_channel(self, other):
+        exists = False
         active = False
-        while not active:
-            found = False
-            for channel in self.list_channels():
-                if channel.remote_pubkey == pubkey:
-                    found = True
-                    if channel.active:
-                        return
-                    break
-            if not found:
-                raise ValueError(f'{self.host} tried to wait for nonexistent channel to {pubkey}')
-            time.sleep(1)
-                        
+        for channel in self.list_channels():
+            if channel.remote_pubkey == other.pubkey:
+                exists = True
+                if channel.active:
+                    active = True
+
+        print(f"{self.host} has_channel {other.host} exists={exists}, active={active}")
+
+        return exists and active
 
     def list_channels(self):
         return self.stub.ListChannels(ln.ListChannelsRequest()).channels
