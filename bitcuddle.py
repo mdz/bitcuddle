@@ -10,13 +10,13 @@ import jsonrpc_requests
 
 import grpc
 import os
+import time
 
 class BitCuddle:
     def go(self):
         # Initialize the mining wallet
-        wallet = BTCWalletNode('btcwallet')
-        wallet.connect()
-        print('Wallet balance:', wallet.getbalance())
+        mining_wallet = BTCWalletNode('btcwallet')
+        mining_wallet.connect()
 
         mining_address_file = '/rpc/mining_address'
         if os.path.exists(mining_address_file):
@@ -51,19 +51,27 @@ class BitCuddle:
         # between them
         alice.peer(bob)
 
-        # Ensure that there are funds available on both sides to create a channel
+        mining_wallet_balance = mining_wallet.getbalance()
+        mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
+        print(f'Mining wallet balance: {mining_wallet_balance}')
+        if mining_wallet_balance_unconfirmed > 0:
+            print(f'Mining wallet unconfirmed balance: {mining_wallet.getunconfirmedbalance()} (generating)')
+            btcd.generate_and_wait(100)
+
+        need_blocks = False
         for node in [bob, alice]:
             balance = node.wallet_balance()
             print(f"Wallet balance in {node.host} is {balance}")
             if balance["total_balance"] == 0:
                 print(f"Funding {node.host} from the mining wallet")
                 node_address = node.new_address()
-                wallet.walletpassphrase('password', 5)
-                wallet.sendtoaddress(node_address, 1)
+                mining_wallet.walletpassphrase('password', 5)
+                mining_wallet.sendtoaddress(node_address, 1)
+                need_blocks = True
 
         # wait for block
-        btcd.generate(100)
-        
+        if need_blocks:
+            btcd.generate_and_wait(400)
 
         bob.create_channel(alice)
 
@@ -198,6 +206,19 @@ class BTCWalletNode(JSONRPCWrapper):
 class BTCDNode(JSONRPCWrapper):
     def __init__(self, host, port=18556):
         super().__init__('btcd', host, port)
+
+    def generate_and_wait(self, blocks):
+        assert blocks > 0
+
+        current = self.getinfo()['blocks']
+        new = current + blocks
+        self.generate(blocks)
+
+        while current < new:
+            print(f"Waiting for block {new}, currently at {current}")
+            time.sleep(1)
+            current = self.getinfo()['blocks']
+        print(f"Reached {new}")
 
 bitcuddle = BitCuddle()
 bitcuddle.go()
