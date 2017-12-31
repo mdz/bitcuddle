@@ -99,25 +99,30 @@ class LightningRPC:
 
         self.pubkey = response.identity_pubkey
 
-    def peer(self, other):
-        print(f"Peering {self.pubkey}@{self.host} with {other.pubkey}@{other.host}")
+    def peered(self, other):
         lnd_address = ln.LightningAddress(pubkey=other.pubkey, host=other.host)
+        peers = self.stub.ListPeers(ln.ListPeersRequest()).peers
+        #print(f"{self.host} is peered with:\n{peers}")
 
-        response = self.stub.ListPeers(ln.ListPeersRequest())
-        #print(repr(response))
-
-        peered = False
-        for peer in response.peers:
+        for peer in peers:
             if peer.pub_key == other.pubkey:
-                peered = True
-                break
+                return True
+        return False
 
-        if peered:
-            print(f"Already peered with {other.pubkey}")
+    def peer(self, other):
+        if self.peered(other):
+            print(f"{self.host} already peered with {other.host}")
         else:
-            print(f"Peering with {lnd_address}")
+            lnd_address = ln.LightningAddress(pubkey=other.pubkey, host=other.host)
+            print(f"{self.host} attempting to peer with {other.host}")
             response = self.stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
             print(response)
+
+            confirmed = False
+            while not other.peered(self):
+                print(f"Waiting for {other.host} to confirm peering with {self.host}")
+                time.sleep(1)
+            print("Confirmed")
 
     def create_channel(self, other):
         response = self.stub.ListChannels(ln.ListChannelsRequest())
