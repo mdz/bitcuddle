@@ -104,10 +104,11 @@ class LightningRPC:
         channel = grpc.secure_channel(f'{self.host}:10009', creds)
         self.stub = lnrpc.LightningStub(channel)
 
-        response = self.stub.GetInfo(ln.GetInfoRequest())
-        print(response)
-
+        response = self.getinfo()
         self.pubkey = response.identity_pubkey
+
+    def getinfo(self):
+        return self.stub.GetInfo(ln.GetInfoRequest())
 
     def peered(self, other):
         lnd_address = ln.LightningAddress(pubkey=other.pubkey, host=other.host)
@@ -130,29 +131,47 @@ class LightningRPC:
 
             confirmed = False
             while not other.peered(self):
-                print(f"Waiting for {other.host} to confirm peering with {self.host}")
+                print(f"{self.host} waiting for {other.host} to confirm peering")
                 time.sleep(1)
             print("Confirmed")
 
     def create_channel(self, other):
-        response = self.stub.ListChannels(ln.ListChannelsRequest())
-        #print(repr(response))
-
         opened = False
-        for channel in response.channels:
+        for channel in self.list_channels():
             if channel.remote_pubkey == other.pubkey:
                 opened = True
                 break
 
         if opened:
-            print(f"Already have a channel to {other.host}")
+            print(f"{self.host} already has a channel to {other.host}")
         else:
-            print(f"Opening channel to {other.host}")
+            print(f"{self.host} opening channel to {other.host}")
             openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=other.pubkey,
                     local_funding_amount=100000,
                     push_sat = 50000)
             response = self.stub.OpenChannelSync(openChannelRequest)
             print(response)
+
+        self._wait_for_channel(other.pubkey)
+
+    def _wait_for_channel(self, pubkey):
+        print(f"{self.host} waiting for channel to {pubkey} to become active")
+        active = False
+        while not active:
+            found = False
+            for channel in self.list_channels():
+                if channel.remote_pubkey == pubkey:
+                    found = True
+                    if channel.active:
+                        return
+                    break
+            if not found:
+                raise ValueError(f'{self.host} tried to wait for nonexistent channel to {pubkey}')
+            time.sleep(1)
+                        
+
+    def list_channels(self):
+        return self.stub.ListChannels(ln.ListChannelsRequest()).channels
 
     def send_payment(self, dest, value, memo):
         invoice = ln.Invoice(value=value, memo=memo)
