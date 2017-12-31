@@ -26,22 +26,20 @@ class BitCuddle:
         mining_wallet.walletpassphrase('password', 5)
         print(mining_wallet.importprivkey(mining_key))
 
-        mining_wallet_balance = mining_wallet.getbalance()
-        mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
-        print(f'Mining wallet balance: {mining_wallet_balance} confirmed, {mining_wallet_balance_unconfirmed} unconfirmed')
-
         # Connect to btcd
         btcd = BTCDRPC('btcd')
         btcd.connect()
 
         # Ensure that the mining wallet has confirmed funds
+        mining_wallet_balance = mining_wallet.getbalance()
+        mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
+
         if not mining_wallet_balance > 0:
             if not mining_wallet_balance_unconfirmed > 0:
                 print('Generating some blocks to mine')
-                btcd.generate_and_wait(10)
+                btcd.generate_and_wait(400)
 
             print(f'Generating some blocks to confirm mining funds')
-            # segwit enabled at 400?
             btcd.generate_and_wait(400)
 
             mining_wallet.wait_for_block_height(btcd.getinfo()['blocks'])
