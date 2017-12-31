@@ -15,7 +15,7 @@ import time
 class BitCuddle:
     def go(self):
         # Initialize the mining wallet
-        mining_wallet = BTCWalletNode('btcwallet')
+        mining_wallet = BTCWalletRPC('btcwallet')
         mining_wallet.connect()
 
         mining_address_file = '/rpc/mining_address'
@@ -31,18 +31,18 @@ class BitCuddle:
         print(f"Mining address: {mining_address}")
 
         # Connect to btcd
-        btcd = BTCDNode('btcd')
+        btcd = BTCDRPC('btcd')
         btcd.connect()
 
         # Bring up the lightning network
-        hub = LightningNode('lnd_hub')
+        hub = LightningRPC('lnd_hub')
         hub.connect()
 
-        bob = LightningNode('lnd_bob')
+        bob = LightningRPC('lnd_bob')
         bob.connect()
         bob.peer(hub)
 
-        alice = LightningNode('lnd_alice')
+        alice = LightningRPC('lnd_alice')
         alice.connect()
         alice.peer(hub)
 
@@ -78,7 +78,7 @@ class BitCuddle:
         bob.send_payment(alice, value=1, memo="Test from bob to alice")
         alice.send_payment(bob, value=1, memo="Test from alice to bob")
 
-class LightningNode:
+class LightningRPC:
     def __init__(self, host):
         self.host = host
         self.stub = None
@@ -199,11 +199,11 @@ class JSONRPCWrapper:
         # If an attribute is not recognized, assume that it is an RPC method
         return getattr(self.rpc, name)
 
-class BTCWalletNode(JSONRPCWrapper):
+class BTCWalletRPC(JSONRPCWrapper):
     def __init__(self, host, port=18554):
         super().__init__('btcwallet', host, port)
 
-class BTCDNode(JSONRPCWrapper):
+class BTCDRPC(JSONRPCWrapper):
     def __init__(self, host, port=18556):
         super().__init__('btcd', host, port)
 
