@@ -68,6 +68,7 @@ class BitCuddle:
 
         # wait for block
         if need_blocks:
+            print(f'Generating some blocks to confirm lnd funds')
             btcd.generate_and_wait(400)
 
         bob.create_channel(alice)
@@ -126,9 +127,9 @@ class LightningRPC:
                 break
 
         if opened:
-            print(f"Already have a channel to {other.pubkey}")
+            print(f"Already have a channel to {other.host}")
         else:
-            print(f"Opening channel to {other.pubkey}")
+            print(f"Opening channel to {other.host}")
             openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=other.pubkey,
                     local_funding_amount=100000,
                     push_sat = 50000)
@@ -170,7 +171,7 @@ class LightningRPC:
         
     def wallet_balance(self):
         response = self.stub.WalletBalance(ln.WalletBalanceRequest())
-        print(response)
+        #print(response)
 
         return {
             "total_balance": response.total_balance,
