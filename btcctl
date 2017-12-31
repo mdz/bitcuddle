@@ -1,0 +1,3 @@
+#!/bin/sh
+
+docker-compose exec btcd btcctl --rpccert=/rpc/rpc.cert  --simnet --rpcuser=devuser --rpcpass=devpass "$@"
