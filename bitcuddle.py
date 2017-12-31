@@ -3,16 +3,18 @@
 import lnd.rpc_pb2 as ln
 import lnd.rpc_pb2_grpc as lnrpc
 
-import btcwallet.api_pb2 as btcw
-import btcwallet.api_pb2_grpc as btcwrpc
+#import btcwallet.api_pb2 as btcw
+#import btcwallet.api_pb2_grpc as btcwrpc
+import requests
+import json
 
 import grpc
 import os
 
 class BitCuddle:
     def go(self):
-        #pubkey = os.environ['LND_PEER_PUBKEY']
-        #host = os.environ['LND_PEER_HOST']
+        wallet = BTCWalletNode('btcwallet')
+        wallet.connect()
 
         hub = LightningNode('lnd_hub')
         hub.connect()
@@ -121,18 +123,29 @@ class BTCWalletNode:
     def connect(self):
         print(f"Connecting to btcwallet on {self.host}")
 
-        cert = open(os.path.expanduser(f'/rpc/rpc.cert')).read()
-        #print(cert)
-        creds = grpc.ssl_channel_credentials(bytes(cert, 'ascii'))
+        print(self._request("getinfo"))
 
-        channel = grpc.secure_channel(f'{self.host}:18554', creds)
-        self.stub = btcwrpc.WalletServiceStub(channel)
+    def _request(self, method, params=[]):
+        headers = {'content-type': 'application/json'}
 
-        response = self.stub.Ping(btcw.PingRequest())
-        print(response)
+        url = f'https://devuser:devpass@{self.host}:18554/'
+        request = {
+            "method": method,
+            "params": params,
+            "jsonrpc": "2.0",
+            "id": 0
+        }
+        resp = requests.post(url, json=request, headers=headers, verify='/rpc/rpc.cert')
+        resp.raise_for_status()
 
-#wallet = BTCWalletNode('btcwallet')
-#wallet.connect()
+        json = resp.json()
+        if json['error'] != None:
+            error = 'btcwallet json-rpc error {}: {}'.format(json['error']['code'], json['error']['message'])
+            raise RuntimeError(error)
+
+        return json['result']
+
+
 
 
 bitcuddle = BitCuddle()

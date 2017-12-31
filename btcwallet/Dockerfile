@@ -7,9 +7,8 @@ EXPOSE 18554
 # related dependencies.
 RUN go get -u github.com/Masterminds/glide
 
-RUN mkdir "/rpc"
 
-# XXX - we should generate certificates here
+RUN mkdir "/rpc"
 
 # Create a volume to house pregenerated RPC credentials. This will be
 # shared with any lnd, btcctl containers so they can securely query btcd's RPC
@@ -21,8 +20,8 @@ VOLUME ["/rpc"]
 
 #### Install btcwallet
 
-WORKDIR $GOPATH/src/github.com/btcsuite
-RUN git clone https://github.com/btcsuite/btcwallet.git
+RUN git clone https://github.com/btcsuite/btcwallet.git $GOPATH/src/github.com/btcsuite/btcwallet
+#RUN git clone -b bitcuddle https://github.com/mdz/btcwallet.git $GOPATH/src/github.com/btcsuite/btcwallet
 
 WORKDIR $GOPATH/src/github.com/btcsuite/btcwallet
 
