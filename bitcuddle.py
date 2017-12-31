@@ -99,10 +99,11 @@ class LightningRPC:
         self.pubkey = response.identity_pubkey
 
     def peer(self, other):
+        print(f"Peering {self.pubkey}@{self.host} with {other.pubkey}@{other.host}")
         lnd_address = ln.LightningAddress(pubkey=other.pubkey, host=other.host)
 
         response = self.stub.ListPeers(ln.ListPeersRequest())
-        print(repr(response))
+        #print(repr(response))
 
         peered = False
         for peer in response.peers:
@@ -119,7 +120,7 @@ class LightningRPC:
 
     def create_channel(self, other):
         response = self.stub.ListChannels(ln.ListChannelsRequest())
-        print(repr(response))
+        #print(repr(response))
 
         opened = False
         for channel in response.channels:
