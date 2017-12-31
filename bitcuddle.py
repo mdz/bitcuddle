@@ -51,18 +51,21 @@ class BitCuddle:
         # between them
         alice.peer(bob)
 
-        # Ensure that there are funds available to create a channel
-        bob_balance = bob.wallet_balance()
-        print(f"Bob's balance is {bob_balance}")
-        if bob_balance["total_balance"] == 0:
-            print("Funding bob from the mining wallet")
-            bob_address = bob.new_address()
-            wallet.walletpassphrase('password', 5)
-            wallet.sendtoaddress(bob_address, 1)
-
-        alice.create_channel(bob)
+        # Ensure that there are funds available on both sides to create a channel
+        for node in [bob, alice]:
+            balance = node.wallet_balance()
+            print(f"Wallet balance in {node.host} is {balance}")
+            if balance["total_balance"] == 0:
+                print(f"Funding {node.host} from the mining wallet")
+                node_address = node.new_address()
+                wallet.walletpassphrase('password', 5)
+                wallet.sendtoaddress(node_address, 1)
 
         # wait for block
+        btcd.generate(100)
+        
+
+        bob.create_channel(alice)
 
         bob.send_payment(alice, value=1, memo="Test from bob to alice")
         alice.send_payment(bob, value=1, memo="Test from alice to bob")
