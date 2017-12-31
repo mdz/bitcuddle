@@ -20,7 +20,8 @@ class BitCuddle:
         mining_wallet = BTCWalletRPC('btcwallet')
         mining_wallet.connect()
 
-        # This might be better done in the btcwallet container, but it lacks btcctl
+        # XXX - This might be better done in start-btcwallet.sh, but the
+        # btcwallet container currently lacks btcctl
         mining_key = os.environ['MINING_PRIVATE_KEY']
         print("Importing mining key into wallet")
         mining_wallet.walletpassphrase('password', 5)
@@ -46,6 +47,8 @@ class BitCuddle:
 
             mining_wallet.wait_for_block_height(btcd.getinfo()['blocks'])
 
+        # XXX - sometimes, we can reach this point without confirmed funds in
+        # the mining wallet. Why?
         mining_wallet_balance = mining_wallet.getbalance()
         mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
         print(f'Mining wallet balance: {mining_wallet_balance} confirmed, {mining_wallet_balance_unconfirmed} unconfirmed')
@@ -84,6 +87,8 @@ class BitCuddle:
                 btcd.generate_and_wait(1)
                 node.wait_for_block_height(btcd.getinfo()['blocks'])
 
+        # XXX - This sometimes fails with "channels cannot be created before
+        # the wallet is fully synced" - why?
         bob.create_channel(alice)
         while not bob.has_channel(alice):
             print("Waiting for channel")
