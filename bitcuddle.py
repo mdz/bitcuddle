@@ -48,18 +48,21 @@ class BitCuddle:
         alice.peer(hub)
         hub.peer(alice)
 
+        # XXX - shouldn't alice and bob find each other through the hub?
+        #alice.peer(bob)
+        #bob.peer(alice)
+
         mining_wallet_balance = mining_wallet.getbalance()
-        mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
         print(f'Mining wallet balance: {mining_wallet_balance}')
-        if mining_wallet_balance_unconfirmed > 0:
-            print(f'Mining wallet unconfirmed balance: {mining_wallet.getunconfirmedbalance()} (generating)')
+        if not mining_wallet_balance > 0:
+            print(f'Generating some blocks to confirm mining funds')
             btcd.generate_and_wait(100)
 
         need_blocks = False
         for node in [bob, alice]:
             balance = node.wallet_balance()
             print(f"Wallet balance in {node.host} is {balance}")
-            if balance["total_balance"] == 0:
+            if not balance["confirmed_balance"] > 0:
                 print(f"Funding {node.host} from the mining wallet")
                 node_address = node.new_address()
                 mining_wallet.walletpassphrase('password', 5)
