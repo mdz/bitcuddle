@@ -34,6 +34,8 @@ class BitCuddle:
         mining_wallet_balance = mining_wallet.getbalance()
         mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
 
+        # XXX - we are mining many more blocks here than should be necessary
+        # this is probably masking some further race conditions
         if not mining_wallet_balance > 0:
             if not mining_wallet_balance_unconfirmed > 0:
                 print('Generating some blocks to mine')
@@ -80,6 +82,7 @@ class BitCuddle:
                     mining_wallet.sendfrom('imported', node_address, funding_amount)
                 print("Generating a block")
                 btcd.generate_and_wait(1)
+                node.wait_for_block_height(btcd.getinfo()['blocks'])
 
         bob.create_channel(alice)
         while not bob.has_channel(alice):
@@ -104,10 +107,10 @@ class LightningRPC:
         channel = grpc.secure_channel(f'{self.host}:10009', creds)
         self.stub = lnrpc.LightningStub(channel)
 
-        response = self.getinfo()
+        response = self.get_info()
         self.pubkey = response.identity_pubkey
 
-    def getinfo(self):
+    def get_info(self):
         return self.stub.GetInfo(ln.GetInfoRequest())
 
     def peered(self, other):
@@ -204,6 +207,15 @@ class LightningRPC:
             "confirmed_balance": response.confirmed_balance,
             "unconfirmed_balance": response.unconfirmed_balance
         }
+
+    def wait_for_block_height(self, height):
+        info = self.get_info()
+        print(info)
+        current = self.get_info().block_height
+        while current < height:
+            print(f'Waiting for lnd node {self.host} ({current}) to reach {height}')
+            time.sleep(1)
+            current = self.get_info().block_height
 
 class JSONRPCWrapper:
     def __init__(self, name, host, port):
