@@ -165,35 +165,28 @@ class LightningNode:
             "unconfirmed_balance": response.unconfirmed_balance
         }
 
-class BTCWalletNode:
-    def __init__(self, host, port=18554):
+class JSONRPCWrapper:
+    def __init__(self, name, host, port):
+        self.name = name
         self.host = host
         self.port = port
         self.rpc = None
 
     def connect(self):
         url = f'https://devuser:devpass@{self.host}:{self.port}/'
-        print(f"Connecting to btcwallet on {url}")
+        print(f"Connecting to {self.name} on {url}")
 
         self.rpc = jsonrpc_requests.Server(url, verify='/rpc/rpc.cert')
 
-        print("Connected to btcwallet:",self.rpc.getinfo())
+        print("Connected to {self.name}:",self.rpc.getinfo())
 
-    # TODO: decorator?
-    def getbalance(self):
-        return self.rpc.getbalance()
+    def __getattr__(self, name):
+        # If an attribute is not recognized, assume that it is an RPC method
+        return getattr(self.rpc, name)
 
-    def getnewaddress(self):
-        return self.rpc.getnewaddress()
-
-    def importprivkey(self, privkey):
-        return self.rpc.importprivkey(privkey)
-
-    def sendtoaddress(self, dest, amount):
-        return self.rpc.sendtoaddress(dest, amount)
-
-    def walletpassphrase(self, passphrase, timeout):
-        return self.rpc.walletpassphrase(passphrase, timeout)
+class BTCWalletNode(JSONRPCWrapper):
+    def __init__(self, host, port=18554):
+        super().__init__('btcwallet', host, port)
 
 bitcuddle = BitCuddle()
 bitcuddle.go()
