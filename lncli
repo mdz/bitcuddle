@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Usage: lncli <image> <command> <args>
+# lncli lnd_alice getinfo
+
+name="$1"
+shift
+
+docker-compose exec $name lncli --no-macaroons "$@"
