@@ -196,8 +196,5 @@ class BTCDNode(JSONRPCWrapper):
     def __init__(self, host, port=18556):
         super().__init__('btcd', host, port)
 
-    def generate(self, blocks):
-        self.rpc.generate(blocks)
-
 bitcuddle = BitCuddle()
 bitcuddle.go()
