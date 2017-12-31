@@ -19,7 +19,7 @@ class BitCuddle:
         print('Wallet balance:', wallet.getbalance())
 
         mining_address_file = '/rpc/mining_address'
-        if not os.path.exists(mining_address_file):
+        if os.path.exists(mining_address_file):
             with open(mining_address_file) as f:
                 mining_address = f.read()
         else:
