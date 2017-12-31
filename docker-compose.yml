@@ -15,7 +15,6 @@ services:
         container_name: btcd
         environment:
           - DEBUG
-          - BTCD_CONNECT
           - MINING_ADDRESS
         entrypoint: ["./start-btcd.sh"]
 
@@ -69,12 +68,15 @@ services:
     bitcuddle:
       image: bitcuddle
       build: .
+      environment:
+        - MINING_PRIVATE_KEY
       volumes:
         - shared:/rpc
         - $PWD:/mnt
       links:
         - "lnd_alice:lnd_alice"
         - "lnd_bob:lnd_bob"
+        - "btcwallet:btcwallet"
 
 volumes:
   # a place to store keys, certificates and other data needed for inter-service communication

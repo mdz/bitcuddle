@@ -20,21 +20,35 @@ class BitCuddle:
         mining_wallet = BTCWalletRPC('btcwallet')
         mining_wallet.connect()
 
-        mining_address_file = '/rpc/mining_address'
-        if os.path.exists(mining_address_file):
-            with open(mining_address_file) as f:
-                mining_address = f.read()
-        else:
-            mining_address = mining_wallet.getnewaddress()
-            with open(mining_address_file, 'w') as f:
-                f.write(mining_address)
-            print(f"Created address {mining_address} for mining")
-            
-        print(f"Mining address: {mining_address}")
+        # This might be better done in the btcwallet container, but it lacks btcctl
+        mining_key = os.environ['MINING_PRIVATE_KEY']
+        print("Importing mining key into wallet")
+        mining_wallet.walletpassphrase('password', 5)
+        print(mining_wallet.importprivkey(mining_key))
+
+        mining_wallet_balance = mining_wallet.getbalance()
+        mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
+        print(f'Mining wallet balance: {mining_wallet_balance} confirmed, {mining_wallet_balance_unconfirmed} unconfirmed')
 
         # Connect to btcd
         btcd = BTCDRPC('btcd')
         btcd.connect()
+
+        # Ensure that the mining wallet has confirmed funds
+        if not mining_wallet_balance > 0:
+            if not mining_wallet_balance_unconfirmed > 0:
+                print('Generating some blocks to mine')
+                btcd.generate_and_wait(10)
+
+            print(f'Generating some blocks to confirm mining funds')
+            # segwit enabled at 400?
+            btcd.generate_and_wait(400)
+
+            mining_wallet.wait_for_block_height(btcd.getinfo()['blocks'])
+
+        mining_wallet_balance = mining_wallet.getbalance()
+        mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
+        print(f'Mining wallet balance: {mining_wallet_balance} confirmed, {mining_wallet_balance_unconfirmed} unconfirmed')
 
         # Bring up the lightning network
         hub = LightningRPC('lnd_hub')
@@ -49,32 +63,28 @@ class BitCuddle:
         hub.peer(alice)
 
         # XXX - shouldn't alice and bob find each other through the hub?
-        #alice.peer(bob)
-        #bob.peer(alice)
+        alice.peer(bob)
 
-        mining_wallet_balance = mining_wallet.getbalance()
-        print(f'Mining wallet balance: {mining_wallet_balance}')
-        if not mining_wallet_balance > 0:
-            print(f'Generating some blocks to confirm mining funds')
-            btcd.generate_and_wait(100)
-
-        need_blocks = False
+        # Ensure that bob and alice have confirmed funds
         for node in [bob, alice]:
             balance = node.wallet_balance()
-            print(f"Wallet balance in {node.host} is {balance}")
-            if not balance["confirmed_balance"] > 0:
-                print(f"Funding {node.host} from the mining wallet")
-                node_address = node.new_address()
-                mining_wallet.walletpassphrase('password', 5)
-                mining_wallet.sendtoaddress(node_address, 1)
-                need_blocks = True
+            confirmed = balance['confirmed_balance']
+            unconfirmed = balance['unconfirmed_balance']
+            print(f"Balance in lightning node {node.host} is {confirmed} confirmed, {unconfirmed} unconfirmed")
 
-        # wait for block
-        if need_blocks:
-            print(f'Generating some blocks to confirm lnd funds')
-            btcd.generate_and_wait(400)
+            if not confirmed > 0:
+                if not unconfirmed > 0:
+                    funding_amount = 1
+                    print(f"Sending {funding_amount} to {node.host}")
+
+                    node_address = node.new_address()
+                    mining_wallet.walletpassphrase('password', 5)
+                    mining_wallet.sendfrom('imported', node_address, funding_amount)
+                print("Generating a block")
+                btcd.generate_and_wait(1)
 
         bob.create_channel(alice)
+        btcd.generate_and_wait(1)
 
         bob.send_payment(alice, value=1, memo="Test from bob to alice")
         alice.send_payment(bob, value=1, memo="Test from alice to bob")
@@ -198,6 +208,7 @@ class JSONRPCWrapper:
         url = f'https://devuser:devpass@{self.host}:{self.port}/'
         print(f"Connecting to {self.name} on {url}")
 
+        # XXX should retry
         self.rpc = jsonrpc_requests.Server(url, verify='/rpc/rpc.cert')
 
         print(f"Connected to {self.name}:",self.rpc.getinfo())
@@ -209,6 +220,11 @@ class JSONRPCWrapper:
 class BTCWalletRPC(JSONRPCWrapper):
     def __init__(self, host, port=18554):
         super().__init__('btcwallet', host, port)
+
+    def wait_for_block_height(self, height):
+        while self.getinfo()['blocks'] < height: 
+            print('Waiting for wallet ({wallet_blocks}) to catch up with btcd ({btcd_blocks})')
+            time.sleep(1)
 
 class BTCDRPC(JSONRPCWrapper):
     def __init__(self, host, port=18556):
