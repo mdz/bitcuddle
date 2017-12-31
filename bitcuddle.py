@@ -185,7 +185,7 @@ class JSONRPCWrapper:
 
         self.rpc = jsonrpc_requests.Server(url, verify='/rpc/rpc.cert')
 
-        print("Connected to {self.name}:",self.rpc.getinfo())
+        print(f"Connected to {self.name}:",self.rpc.getinfo())
 
     def __getattr__(self, name):
         # If an attribute is not recognized, assume that it is an RPC method
