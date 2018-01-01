@@ -19,12 +19,12 @@ class BitCuddle:
         # Initialize the mining wallet
         mining_wallet = BTCWalletRPC('btcwallet')
         mining_wallet.connect()
+        mining_wallet.walletpassphrase('password', 0)
 
         # XXX - This might be better done in start-btcwallet.sh, but the
         # btcwallet container currently lacks btcctl
         mining_key = os.environ['MINING_PRIVATE_KEY']
         print("Importing mining key into wallet")
-        mining_wallet.walletpassphrase('password', 5)
         print(mining_wallet.importprivkey(mining_key))
 
         # Connect to btcd
@@ -35,23 +35,21 @@ class BitCuddle:
         mining_wallet_balance = mining_wallet.getbalance()
         mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
 
-        # XXX - we are mining many more blocks here than should be necessary
-        # this is probably masking some further race conditions
         if not mining_wallet_balance > 0:
-            if not mining_wallet_balance_unconfirmed > 0:
-                print('Generating some blocks to mine')
-                btcd.generate_and_wait(400)
-
             print(f'Generating some blocks to confirm mining funds')
-            btcd.generate_and_wait(400)
+            btcd.generate_and_wait(401)
 
             mining_wallet.wait_for_block_height(btcd.getinfo()['blocks'])
+            # FIXME why are the getinfo height and the processed txs out of sync?
+            while mining_wallet.getbalance() == 0:
+                print('Still waiting for balance to show')
+                time.sleep(2)
 
-        # XXX - sometimes, we can reach this point without confirmed funds in
-        # the mining wallet. Why?
         mining_wallet_balance = mining_wallet.getbalance()
         mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
         print(f'Mining wallet balance: {mining_wallet_balance} confirmed, {mining_wallet_balance_unconfirmed} unconfirmed')
+        if mining_wallet_balance == 0:
+            raise 'no balance in mining wallet'
 
         # Bring up the lightning network
         hub = LightningRPC('lnd_hub')
@@ -81,7 +79,6 @@ class BitCuddle:
                     print(f"Sending {funding_amount} to {node.host}")
 
                     node_address = node.new_address()
-                    mining_wallet.walletpassphrase('password', 5)
                     mining_wallet.sendfrom('imported', node_address, funding_amount)
                 print("Generating a block")
                 btcd.generate_and_wait(1)

@@ -16,8 +16,26 @@ One Paragraph of project description goes here
 git clone -b networking git@github.com:devrandom/lnd.git
 (cd lnd/docker/lnd && docker-compose build)
 
+# build btcwallet
+(cd btcwallet && docker build . --tag btcwallet)
+
 # start everything up
 docker-compose up -d
+
+# bitcuddle will fail since stuff isn't up (FIXME)
+# wait for things to settle
+docker-compose logs -f
+# run bitcuddle again
+docker-compose up bitcuddle
+```
+
+## Cleaning up
+
+You might need to do some of:
+
+```bash
+docker-compose down
+docker volume prune -f
 ```
 
 ### Prerequisites
