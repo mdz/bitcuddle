@@ -34,8 +34,7 @@ docker-compose up bitcuddle
 You might need to do some of:
 
 ```bash
-docker-compose down
-docker volume prune -f
+docker-compose down -v
 ```
 
 ### Prerequisites
