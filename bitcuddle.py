@@ -145,6 +145,7 @@ class LightningRPC:
                 time.sleep(1)
             print("Confirmed")
 
+    @retry(wait_exponential_multiplier=100, wait_exponential_max=5000)
     def create_channel(self, other):
         if self.has_channel(other):
             print(f"{self.host} already has a channel to {other.host}")
