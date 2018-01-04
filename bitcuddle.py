@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3.6 -u
 
 import lnd.rpc_pb2 as ln
 import lnd.rpc_pb2_grpc as lnrpc
