@@ -11,6 +11,7 @@ import jsonrpc_requests
 import grpc
 import os
 import time
+from retrying import retry
 
 class BitCuddle:
     def go(self):
@@ -99,6 +100,7 @@ class LightningRPC:
         self.host = host
         self.stub = None
 
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000)
     def connect(self):
         print(f"Connecting to lnd on {self.host}")
 
@@ -226,6 +228,7 @@ class JSONRPCWrapper:
         self.port = port
         self.rpc = None
 
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=30000)
     def connect(self):
         url = f'https://devuser:devpass@{self.host}:{self.port}/'
         print(f"Connecting to {self.name} on {url}")

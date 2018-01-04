@@ -22,9 +22,9 @@ git clone -b networking git@github.com:devrandom/lnd.git
 # start everything up
 docker-compose up -d
 
-# bitcuddle will fail since stuff isn't up (FIXME)
-# wait for things to settle
+# check what happened
 docker-compose logs -f
+
 # run bitcuddle again
 docker-compose up bitcuddle
 ```
