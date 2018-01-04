@@ -65,7 +65,7 @@ class BitCuddle:
         #alice.peer(bob)
 
         # Ensure that bob and alice have confirmed funds
-        for node in [bob, alice]:
+        for node in [bob, alice, hub]:
             balance = node.wallet_balance()
             confirmed = balance['confirmed_balance']
             unconfirmed = balance['unconfirmed_balance']
@@ -87,10 +87,21 @@ class BitCuddle:
 
         bob.create_channel(hub)
         alice.create_channel(hub)
-        #bob.create_channel(alice)
 
-        while not bob.has_channel(hub) or not alice.has_channel(hub):
-            print("Waiting for channel")
+        while (not bob.has_channel(hub) or not alice.has_channel(hub)):
+            print("Waiting for edge channel")
+            btcd.generate_and_wait(1)
+
+        hub.create_channel(bob)
+
+        while not hub.has_channel(bob):
+            print("Waiting for hub channel to bob")
+            btcd.generate_and_wait(1)
+
+        hub.create_channel(alice)
+
+        while not hub.has_channel(alice):
+            print("Waiting for hub channel to alice")
             btcd.generate_and_wait(1)
 
         btcd.generate_and_wait(6)
@@ -153,7 +164,7 @@ class LightningRPC:
             print(f"{self.host} opening channel to {other.host}")
             openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=other.pubkey,
                     local_funding_amount=100000,
-                    push_sat = 50000,
+                    #push_sat = 50000,
                     private = False)
             response = self.stub.OpenChannelSync(openChannelRequest)
             print(response)
