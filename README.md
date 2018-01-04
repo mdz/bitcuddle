@@ -16,10 +16,7 @@ One Paragraph of project description goes here
 git clone -b networking git@github.com:devrandom/lnd.git
 (cd lnd/docker/lnd && docker-compose build)
 
-# build btcwallet
-(cd btcwallet && docker build . --tag btcwallet)
-
-# build bitcuddle
+# build bitcuddle and btcwallet
 docker-compose build
 
 # start everything up

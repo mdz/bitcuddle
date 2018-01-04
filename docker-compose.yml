@@ -20,6 +20,7 @@ services:
 
     btcwallet:
         image: btcwallet
+        build: btcwallet
         container_name: btcwallet
         volumes:
           - shared:/rpc
