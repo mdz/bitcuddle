@@ -173,7 +173,7 @@ class LightningRPC:
         exists = False
         active = False
         for channel in self.list_channels():
-            if channel.remote_pubkey == other.pubkey:
+            if channel.remote_pubkey == other.pubkey and channel.local_balance > 0:
                 exists = True
                 if channel.active:
                     active = True
