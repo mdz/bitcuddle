@@ -62,7 +62,7 @@ class BitCuddle:
         hub.peer(alice)
 
         # XXX - shouldn't alice and bob find each other through the hub?
-        alice.peer(bob)
+        #alice.peer(bob)
 
         # Ensure that bob and alice have confirmed funds
         for node in [bob, alice]:
@@ -84,10 +84,16 @@ class BitCuddle:
 
         # XXX - This sometimes fails with "channels cannot be created before
         # the wallet is fully synced" - why?
-        bob.create_channel(alice)
-        while not bob.has_channel(alice):
+
+        bob.create_channel(hub)
+        alice.create_channel(hub)
+        #bob.create_channel(alice)
+
+        while not bob.has_channel(hub) or not alice.has_channel(hub):
             print("Waiting for channel")
             btcd.generate_and_wait(1)
+
+        btcd.generate_and_wait(6)
 
         bob.send_payment(alice, value=1, memo="Test from bob to alice")
         alice.send_payment(bob, value=1, memo="Test from alice to bob")
@@ -146,7 +152,8 @@ class LightningRPC:
             print(f"{self.host} opening channel to {other.host}")
             openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=other.pubkey,
                     local_funding_amount=100000,
-                    push_sat = 50000)
+                    push_sat = 50000,
+                    private = False)
             response = self.stub.OpenChannelSync(openChannelRequest)
             print(response)
 
