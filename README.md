@@ -25,7 +25,7 @@ docker-compose up -d
 # check what happened
 docker-compose logs -f
 
-# run bitcuddle again
+# run bitcuddle again, just for fun
 docker-compose up bitcuddle
 ```
 
@@ -40,9 +40,8 @@ docker volume prune -f
 
 ### Prerequisites
 
-* docker
-* docker-compose
-* ssh stanza for compute instance (to run fund script)
+* docker (should be installed from docker CE repository)
+* docker-compose (can be installed via `pip install`)
 
 ## Running the tests
 
