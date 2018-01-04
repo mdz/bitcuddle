@@ -61,9 +61,6 @@ class BitCuddle:
         hub.peer(bob)
         hub.peer(alice)
 
-        # XXX - shouldn't alice and bob find each other through the hub?
-        #alice.peer(bob)
-
         # Ensure that bob and alice have confirmed funds
         for node in [bob, alice, hub]:
             balance = node.wallet_balance()
@@ -82,32 +79,25 @@ class BitCuddle:
                 btcd.generate_and_wait(1)
                 node.wait_for_block_height(btcd.getinfo()['blocks'])
 
-        # XXX - This sometimes fails with "channels cannot be created before
-        # the wallet is fully synced" - why?
-
-        bob.create_channel(hub)
         alice.create_channel(hub)
-
-        while (not bob.has_channel(hub) or not alice.has_channel(hub)):
-            print("Waiting for edge channel")
+        while not alice.has_channel(hub):
+            print("Waiting for alice channel")
             btcd.generate_and_wait(1)
 
         hub.create_channel(bob)
-
         while not hub.has_channel(bob):
             print("Waiting for hub channel to bob")
             btcd.generate_and_wait(1)
 
-        hub.create_channel(alice)
-
-        while not hub.has_channel(alice):
-            print("Waiting for hub channel to alice")
-            btcd.generate_and_wait(1)
-
         btcd.generate_and_wait(6)
 
-        bob.send_payment(alice, value=1, memo="Test from bob to alice")
+        # wait for channel announcements to propagate
+        time.sleep(30)
+
+        alice.send_payment(hub, value=1, memo="Test from alice to hub")
+        hub.send_payment(bob, value=1, memo="Test from hub to bob")
         alice.send_payment(bob, value=1, memo="Test from alice to bob")
+        bob.send_payment(alice, value=1, memo="Test from bob to alice")
 
 class LightningRPC:
     def __init__(self, host):
@@ -164,7 +154,7 @@ class LightningRPC:
             print(f"{self.host} opening channel to {other.host}")
             openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=other.pubkey,
                     local_funding_amount=100000,
-                    #push_sat = 50000,
+                    push_sat = 50000,
                     private = False)
             response = self.stub.OpenChannelSync(openChannelRequest)
             print(response)
@@ -177,6 +167,7 @@ class LightningRPC:
                 exists = True
                 if channel.active:
                     active = True
+                    print(channel)
 
         print(f"{self.host} has_channel {other.host} exists={exists}, active={active}")
 
@@ -202,6 +193,8 @@ class LightningRPC:
 
         response = self.stub.SendPaymentSync(payment)
         print(response)
+        if response.payment_error:
+            raise Exception(response.payment_error)
 
     def new_address(self, address_type='np2wkh'):
         type_map = {
