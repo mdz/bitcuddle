@@ -34,7 +34,6 @@ class BitCuddle:
 
         # Ensure that the mining wallet has confirmed funds
         mining_wallet_balance = mining_wallet.getbalance()
-        mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
 
         if not mining_wallet_balance > 0:
             print(f'Generating some blocks to confirm mining funds')
@@ -49,8 +48,6 @@ class BitCuddle:
         mining_wallet_balance = mining_wallet.getbalance()
         mining_wallet_balance_unconfirmed = mining_wallet.getunconfirmedbalance()
         print(f'Mining wallet balance: {mining_wallet_balance} confirmed, {mining_wallet_balance_unconfirmed} unconfirmed')
-        if mining_wallet_balance == 0:
-            raise 'no balance in mining wallet'
 
         # Bring up the lightning network
         hub = LightningRPC('lnd_hub')
