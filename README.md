@@ -19,6 +19,9 @@ git clone -b networking git@github.com:devrandom/lnd.git
 # build btcwallet
 (cd btcwallet && docker build . --tag btcwallet)
 
+# build bitcuddle
+docker-compose build
+
 # start everything up
 docker-compose up -d
 
@@ -35,6 +38,7 @@ You might need to do some of:
 
 ```bash
 docker-compose down -v
+docker volume prune -f
 ```
 
 ### Prerequisites
