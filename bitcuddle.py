@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6 -u
+#!/usr/bin/env python3.6
 
 import lnd.rpc_pb2 as ln
 import lnd.rpc_pb2_grpc as lnrpc
@@ -92,7 +92,13 @@ class BitCuddle:
         btcd.generate_and_wait(6)
 
         # wait for channel announcements to propagate
-        time.sleep(30)
+        while not alice.nodeinfo(bob):
+            print("Waiting for alice to see bob")
+            time.sleep(1)
+
+        while not bob.nodeinfo(alice):
+            print("Waiting for bob to see alice")
+            time.sleep(1)
 
         alice.send_payment(hub, value=1, memo="Test from alice to hub")
         hub.send_payment(bob, value=1, memo="Test from hub to bob")
@@ -109,7 +115,6 @@ class LightningRPC:
         print(f"Connecting to lnd on {self.host}")
 
         cert = open(os.path.expanduser(f'/rpc/lnd-{self.host}.cert')).read()
-        #print(cert)
         creds = grpc.ssl_channel_credentials(bytes(cert, 'ascii'))
 
         channel = grpc.secure_channel(f'{self.host}:10009', creds)
@@ -124,7 +129,6 @@ class LightningRPC:
     def peered(self, other):
         lnd_address = ln.LightningAddress(pubkey=other.pubkey, host=other.host)
         peers = self.stub.ListPeers(ln.ListPeersRequest()).peers
-        #print(f"{self.host} is peered with:\n{peers}")
 
         for peer in peers:
             if peer.pub_key == other.pubkey:
@@ -138,7 +142,6 @@ class LightningRPC:
             lnd_address = ln.LightningAddress(pubkey=other.pubkey, host=other.host)
             print(f"{self.host} attempting to peer with {other.host}")
             response = self.stub.ConnectPeer(ln.ConnectPeerRequest(addr=lnd_address, perm=True))
-            print(response)
 
             confirmed = False
             while not other.peered(self):
@@ -157,7 +160,16 @@ class LightningRPC:
                     push_sat = 50000,
                     private = False)
             response = self.stub.OpenChannelSync(openChannelRequest)
-            print(response)
+
+    def nodeinfo(self, other):
+        try:
+            response = self.stub.GetNodeInfo(ln.NodeInfoRequest(pub_key=other.pubkey))
+            return response
+        except grpc.RpcError as e:
+            if isinstance(e, grpc.Call):
+                if e.details() == "unable to find node":
+                    return None
+            raise e
 
     def has_channel(self, other):
         exists = False
@@ -167,7 +179,6 @@ class LightningRPC:
                 exists = True
                 if channel.active:
                     active = True
-                    print(channel)
 
         print(f"{self.host} has_channel {other.host} exists={exists}, active={active}")
 
@@ -178,8 +189,8 @@ class LightningRPC:
 
     def send_payment(self, dest, value, memo):
         invoice = ln.Invoice(value=value, memo=memo)
-        print(invoice)
 
+        print(invoice)
         response = dest.stub.AddInvoice(invoice)
         print(response)
 
@@ -213,7 +224,6 @@ class LightningRPC:
         
     def wallet_balance(self):
         response = self.stub.WalletBalance(ln.WalletBalanceRequest())
-        #print(response)
 
         return {
             "total_balance": response.total_balance,
@@ -223,7 +233,6 @@ class LightningRPC:
 
     def wait_for_block_height(self, height):
         info = self.get_info()
-        print(info)
         current = self.get_info().block_height
         while current < height:
             print(f'Waiting for lnd node {self.host} ({current}) to reach {height}')
