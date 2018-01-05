@@ -13,4 +13,4 @@ RUN python -m grpc_tools.protoc --proto_path=vendor --python_out=. --grpc_python
 
 VOLUME /rpc
 
-CMD [ "python", "bitcuddle.py" ]
+CMD [ "python", "-u", "bitcuddle.py" ]
