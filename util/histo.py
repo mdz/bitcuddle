@@ -27,4 +27,4 @@ for row in table:
         previous_value = value
 
 for key in sorted(histo.keys()):
-    print("{: d}".format(key), histo[key])
+    print("{: 3d}".format(key), histo[key])

@@ -157,7 +157,7 @@ class LightningRPC:
             print(f"{self.host} opening channel to {other.host}")
             openChannelRequest = ln.OpenChannelRequest(node_pubkey_string=other.pubkey,
                     local_funding_amount=100000,
-                    push_sat = 50000,
+                    #push_sat = 50000,
                     private = False)
             response = self.stub.OpenChannelSync(openChannelRequest)
 
